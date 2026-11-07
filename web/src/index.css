@@ -1839,3 +1839,19 @@ p {
   .self-check > button { display: flex; margin-left: 0; }
   .detail-section .organizer-link { max-width: 100%; }
 }
+
+
+/* M6 navigation: keep the three links reachable at 320 px. */
+@media (max-width: 680px) {
+  .site-header nav {
+    gap: 9px;
+    justify-content: space-between;
+    font-size: 11px;
+  }
+  .site-header nav a {
+    white-space: nowrap;
+  }
+  .site-header nav .nav-count {
+    font-size: 9px;
+  }
+}

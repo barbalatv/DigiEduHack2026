@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
+import GovernancePage from "./GovernancePage"
 import {
   ArrowDown,
   ArrowLeft,
@@ -14,6 +15,7 @@ import {
   Info,
   Languages,
   MapPin,
+  MessageSquareText,
   Radar,
   Search,
   ShieldCheck,
@@ -590,6 +592,11 @@ function Detail({
           </dl>
         </section>
         <PlanB program={program} programs={programs} open={open} />
+        {!program.demo && <section className="detail-section">
+          <h2><MessageSquareText aria-hidden="true" /> Ce lipsește din această ofertă?</h2>
+          <p>Testează cum o nevoie concretă din catalog ar putea deveni o propunere și un răspuns motivat prin Modulul 6. Acesta este doar un exercițiu local; nu trimite feedback organizatorului.</p>
+          <a className="organizer-link" href={"?view=guvernanta&sourceProgramId=" + encodeURIComponent(program.id)}>Testează fluxul de feedback <ArrowRight size={17} aria-hidden="true" /></a>
+        </section>}
         <section className="detail-section">
           <h2>
             <ShieldCheck aria-hidden="true" />
@@ -618,6 +625,7 @@ export default function App() {
   const search = useSyncExternalStore(subscribe, locationSnapshot)
   const params = new URLSearchParams(search)
   const selected = params.get("program")
+  const inGovernance = params.get("view") === "guvernanta"
   const filters: Filters = {
     q: params.get("q") || "",
     language: params.get("language") || "",
@@ -646,8 +654,8 @@ export default function App() {
   }, [])
   useEffect(() => {
     const program = programs?.find((item) => item.id === selected)
-    document.title = `${program ? program.title : selected ? "Program negăsit" : "Formări pentru profesori"} | Puntea Edu MD`
-  }, [selected, programs])
+    document.title = `${inGovernance ? "Feedback și guvernanță" : program ? program.title : selected ? "Program negăsit" : "Formări pentru profesori"} | Puntea Edu MD`
+  }, [selected, programs, inGovernance])
   useEffect(() => {
     if (selected !== previousSelection.current) {
       main.current?.focus({ preventScroll: true })
@@ -677,8 +685,11 @@ export default function App() {
   }
   const back = () => {
     const next = catalogParams(search)
+    next.delete("view")
+    next.delete("sourceProgramId")
     navigate(next)
     main.current?.focus()
+    if (inGovernance) window.scrollTo({ top: 0, behavior: "instant" })
   }
   const reset = () => {
     const next = new URLSearchParams(search)
@@ -720,7 +731,7 @@ export default function App() {
           </a>
           <nav aria-label="Navigare principală">
             <a
-              className={!selected ? "nav-active" : ""}
+              className={!selected && !inGovernance ? "nav-active" : ""}
               href="/"
               onClick={(event) => {
                 event.preventDefault()
@@ -730,7 +741,10 @@ export default function App() {
               Catalog{" "}
               <span className="nav-count">{programs?.length ?? "…"}</span>
             </a>
-            <a href="#cum-verificam">
+            <a className={inGovernance ? "nav-active" : ""} href="?view=guvernanta">
+              Feedback <span className="nav-count">M6</span>
+            </a>
+            <a href={inGovernance ? "/#cum-verificam" : "#cum-verificam"}>
               Cum verificăm <ArrowUpRight size={14} aria-hidden="true" />
             </a>
           </nav>
@@ -741,7 +755,9 @@ export default function App() {
         </div>
       </header>
       <main id="continut" ref={main} tabIndex={-1}>
-        {failed ? (
+        {inGovernance ? (
+          <GovernancePage sourceProgramId={params.get("sourceProgramId")} />
+        ) : failed ? (
           <div className="shell empty-state" role="alert">
             <CircleHelp />
             <h1>Catalogul nu a putut fi încărcat</h1>
