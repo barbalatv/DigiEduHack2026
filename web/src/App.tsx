@@ -685,8 +685,11 @@ export default function App() {
   }
   const back = () => {
     const next = catalogParams(search)
+    next.delete("view")
+    next.delete("sourceProgramId")
     navigate(next)
     main.current?.focus()
+    if (inGovernance) window.scrollTo({ top: 0, behavior: "instant" })
   }
   const reset = () => {
     const next = new URLSearchParams(search)
@@ -741,7 +744,7 @@ export default function App() {
             <a className={inGovernance ? "nav-active" : ""} href="?view=guvernanta">
               Feedback <span className="nav-count">M6</span>
             </a>
-            <a href="#cum-verificam">
+            <a href={inGovernance ? "/#cum-verificam" : "#cum-verificam"}>
               Cum verificăm <ArrowUpRight size={14} aria-hidden="true" />
             </a>
           </nav>
