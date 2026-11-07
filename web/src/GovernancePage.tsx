@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, type FormEvent } from "react"
 import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardList, FileQuestion, GitBranch, MessageSquareText, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DEMO_RECORDS, FEEDBACK_TYPES, MODULES, createLocalRecord, simulateDecision, type DecisionType, type FeedbackType, type GovernanceRecord, type ModuleId, type ModuleReference } from "@/lib/governance"
@@ -36,7 +36,7 @@ export default function GovernancePage({ sourceProgramId }: { sourceProgramId: s
     [records, moduleFilter],
   )
   const selected = records.find(r => r.id === selectedId)
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     try {
       const record = createLocalRecord("local-" + (records.length + 1), { ...form, reference: programRef })
@@ -51,7 +51,7 @@ export default function GovernancePage({ sourceProgramId }: { sourceProgramId: s
       setSuccess("")
     }
   }
-  const submitDecision = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitDecision = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!selected) return
     try {
