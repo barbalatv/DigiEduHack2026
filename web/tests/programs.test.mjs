@@ -8,6 +8,12 @@ import {
   formatDate,
   moldovaToday,
   registrationStatus,
+  selfCheckSummary,
+  relatedPrograms,
+  programParams,
+  catalogParams,
+  relatedSearchParams,
+  NO_CONFIRMED_ALTERNATIVE,
   UNKNOWN,
 } from "../src/lib/programs.ts"
 
@@ -21,6 +27,142 @@ test("past deadline never claims definitively closed; same day and future never 
   for (const today of ["2026-10-29", "2026-10-30"]) {
     assert.equal(registrationStatus(program, today).label, "Termen publicat")
   }
+})
+
+test("self-check: unanswered, explicit uncertainty, yes, no and mixed answers", () => {
+  const program = programs.find((p) => p.id === "inel-mentori")
+  assert.equal(selfCheckSummary(program, {}), "Necesită confirmare")
+  const yes = Object.fromEntries(program.selfCheck.map((c) => [c.id, "yes"]))
+  assert.equal(selfCheckSummary(program, yes), "Criterii cunoscute îndeplinite")
+  assert.equal(
+    selfCheckSummary(program, { ...yes, "full-participation": "unknown" }),
+    "Necesită confirmare"
+  )
+  assert.equal(
+    selfCheckSummary(program, { ...yes, "management-experience": "no" }),
+    "Există criterii cunoscute neîndeplinite"
+  )
+  assert.equal(
+    selfCheckSummary(program, { "management-experience": "no" }),
+    "Există criterii cunoscute neîndeplinite"
+  )
+  for (const id of [
+    "upsc-informatica",
+    "curriculum-disciplinar",
+    "demo-incluziune",
+  ]) {
+    assert.equal(
+      selfCheckSummary(
+        programs.find((p) => p.id === id),
+        yes
+      ),
+      "Necesită confirmare"
+    )
+  }
+})
+
+test("interactive criteria have official provenance and do not turn unknowns into criteria", () => {
+  const interactive = programs.filter((p) => p.selfCheck?.length)
+  assert.equal(interactive.length, 2)
+  for (const program of interactive) {
+    assert.ok(program.officialUrl && program.verifiedAt && !program.demo)
+    for (const check of program.selfCheck) {
+      assert.ok(
+        check.id && check.question && check.evidence && check.sourceSection
+      )
+    }
+  }
+})
+
+test("Plan B prefers same topic and excludes fixtures, self, missing provenance and unrelated records", () => {
+  const program = programs[0]
+  const matches = relatedPrograms(program, programs)
+  assert.equal(matches[0].program.id, "upsc-informatica")
+  assert.equal(matches[0].sameTopic, true)
+  assert.equal(matches[1].program.id, "curriculum-disciplinar")
+  assert.deepEqual(matches[1].audiences, ["Cadre didactice"])
+  assert.equal(
+    relatedPrograms(program, [program, ...programs.filter((p) => p.demo)])
+      .length,
+    0
+  )
+  assert.equal(
+    relatedPrograms(program, [
+      { ...programs[2], verifiedAt: null },
+      programs[3],
+    ]).length,
+    0
+  )
+  assert.equal(
+    relatedPrograms(program, [{ ...programs[2], officialUrl: null }]).length,
+    0
+  )
+  assert.equal(
+    NO_CONFIRMED_ALTERNATIVE,
+    "Nu există o alternativă cu înscriere confirmată în catalogul pilot"
+  )
+  // Related UPSC has future course dates, but its application term remains unknown.
+  assert.equal(
+    registrationStatus(matches[0].program, "2026-11-07").kind,
+    "unknown"
+  )
+  assert.equal(
+    registrationStatus(
+      { ...matches[0].program, registrationDeadline: "2026-12-01" },
+      "2026-11-07"
+    ).kind,
+    "published"
+  )
+})
+
+test("deep links and return preserve every filter; related search intentionally clears conflicting filters", () => {
+  const filters = new URLSearchParams({
+    q: "competențe digitale",
+    language: "Română",
+    audience: "Cadre didactice",
+    format: "Online",
+    topic: "Competențe digitale",
+    realOnly: "1",
+  })
+  const detail = programParams(`?${filters}`, "digiprof-a-b")
+  assert.equal(detail.get("program"), "digiprof-a-b")
+  assert.equal(catalogParams(`?${detail}`).toString(), filters.toString())
+  const next = programParams(`?${detail}`, "upsc-informatica")
+  assert.equal(next.get("program"), "upsc-informatica")
+  assert.equal(catalogParams(`?${next}`).toString(), filters.toString())
+  assert.equal(
+    relatedSearchParams(programs[0]).toString(),
+    new URLSearchParams({
+      topic: "Competențe digitale",
+      realOnly: "1",
+    }).toString()
+  )
+  assert.deepEqual([...programParams("", "digiprof-a-b").keys()], ["program"])
+})
+
+test("Chisinau summer and winter midnight change the deadline status without using event dates", () => {
+  const summer = { ...programs[0], registrationDeadline: "2026-06-30" }
+  const winter = { ...programs[0], registrationDeadline: "2026-10-30" }
+  assert.equal(
+    registrationStatus(summer, moldovaToday(new Date("2026-06-30T20:59:59Z")))
+      .kind,
+    "published"
+  )
+  assert.equal(
+    registrationStatus(summer, moldovaToday(new Date("2026-06-30T21:00:00Z")))
+      .kind,
+    "past"
+  )
+  assert.equal(
+    registrationStatus(winter, moldovaToday(new Date("2026-10-30T21:59:59Z")))
+      .kind,
+    "published"
+  )
+  assert.equal(
+    registrationStatus(winter, moldovaToday(new Date("2026-10-30T22:00:00Z")))
+      .kind,
+    "past"
+  )
 })
 
 test("training dates do not become registration deadlines", () => {

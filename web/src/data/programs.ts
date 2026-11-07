@@ -31,6 +31,17 @@ export const programs: Program[] = [
       "Se adresează cadrelor didactice din învățământul preșcolar, primar, gimnazial și liceal.",
       "Anunțul indică formulare distincte în funcție de nivelul de învățământ.",
     ],
+    selfCheck: [
+      {
+        id: "teaching-level",
+        question:
+          "Ești cadru didactic în învățământul preșcolar, primar, gimnazial sau liceal din Republica Moldova?",
+        evidence:
+          "Publicul indicat de MEC cuprinde cadrele didactice din aceste patru niveluri din Republica Moldova.",
+        sourceSection:
+          "Paragraful introductiv · publicul programelor DigiProf A și B",
+      },
+    ],
     nextStep:
       "Consultă anunțul MEC și solicită confirmarea unei eventuale prelungiri înainte de completarea formularului corespunzător nivelului tău de învățământ.",
     caveat:
@@ -117,6 +128,31 @@ export const programs: Program[] = [
       "Minimum 5 ani de experiență managerială în educație.",
       "Disponibilitate pentru participare integrală și activități ulterioare de mentorat.",
       "Motivație pentru rolul de mentor. Selecția include analiza dosarului și interviu.",
+    ],
+    selfCheck: [
+      {
+        id: "management-experience",
+        question: "Ai minimum 5 ani de experiență managerială în educație?",
+        evidence:
+          "INEL indică minimum cinci ani de experiență managerială în educație.",
+        sourceSection: "Criterii de selecție · punctul 1",
+      },
+      {
+        id: "full-participation",
+        question:
+          "Ești disponibil(ă) să participi integral la activitățile programului?",
+        evidence:
+          "Participarea integrală la activitățile programului este un criteriu publicat.",
+        sourceSection: "Criterii de selecție · punctul 2",
+      },
+      {
+        id: "mentor-motivation",
+        question:
+          "Ești motivat(ă) să îți asumi rolul de mentor în leadership educațional?",
+        evidence:
+          "Motivația pentru asumarea rolului de mentor în leadership este un criteriu publicat.",
+        sourceSection: "Criterii de selecție · punctul 3",
+      },
     ],
     nextStep:
       "Verifică apelul INEL și contactează organizatorul pentru informații despre o eventuală ediție viitoare; nu presupune că apelul istoric mai primește candidaturi.",

@@ -34,11 +34,18 @@ import {
 } from "@/components/ui/select"
 import {
   coursePeriod,
+  catalogParams,
   emptyFilters,
   filterPrograms,
   formatDate,
   registrationStatus,
+  programParams,
+  relatedPrograms,
+  relatedSearchParams,
+  selfCheckSummary,
+  NO_CONFIRMED_ALTERNATIVE,
   UNKNOWN,
+  type Answer,
   type Filters,
   type Program,
 } from "@/lib/programs"
@@ -107,8 +114,7 @@ function ProgramCard({
   program: Program
   open: (id: string) => void
 }) {
-  const params = new URLSearchParams(window.location.search)
-  params.set("program", program.id)
+  const params = programParams(window.location.search, program.id)
   return (
     <article className={`program-card ${program.demo ? "is-demo" : ""}`}>
       <div className="card-top">
@@ -254,7 +260,226 @@ function FilterSelect({
   )
 }
 
-function Detail({ program, back }: { program: Program; back: () => void }) {
+function SelfCheck({ program }: { program: Program }) {
+  const [answers, setAnswers] = useState<Record<string, Answer>>({})
+  const formId = useId()
+  const checks = program.selfCheck || []
+  if (program.demo) return null
+  return (
+    <section
+      className="detail-section self-check"
+      aria-labelledby={`${formId}-title`}
+    >
+      <h2 id={`${formId}-title`}>Fișa „Mi se potrivește?”</h2>
+      <p>
+        Autoverificare opțională, fără cont. Răspunsurile rămân doar în această
+        fișă, în memoria paginii; nu sunt trimise sau salvate și se șterg la
+        părăsirea fișei ori reîncărcare.
+      </p>
+      {checks.map((check) => (
+        <fieldset key={check.id}>
+          <legend>{check.question}</legend>
+          <p>
+            {check.evidence}{" "}
+            <a
+              href={program.officialUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Sursa oficială (filă nouă): {check.sourceSection}
+            </a>
+          </p>
+          <div className="answer-options">
+            {(
+              [
+                ["yes", "Da"],
+                ["no", "Nu"],
+                ["unknown", "Nu știu"],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value}>
+                <input
+                  type="radio"
+                  name={`${formId}-${check.id}`}
+                  value={value}
+                  checked={answers[check.id] === value}
+                  onChange={() =>
+                    setAnswers((current) => ({ ...current, [check.id]: value }))
+                  }
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ))}
+      <p className="check-summary" role="status" aria-live="polite">
+        {selfCheckSummary(program, answers)}
+      </p>
+      <p>
+        <strong>De clarificat:</strong>{" "}
+        {checks.length
+          ? "Aceasta este doar o verificare a criteriilor enumerate, nu o decizie de eligibilitate sau de admitere. Confirmă celelalte condiții și disponibilitatea direct la organizator."
+          : "Condițiile detaliate nu sunt suficiente pentru o autoverificare. Consultă cerințele publicate mai jos și solicită clarificări la organizator."}
+      </p>
+      {program.id === "inel-mentori" && (
+        <p>
+          Apel istoric: selecția include dosar și interviu. Consultă și
+          secțiunea „Cine poate aplica?”; răspunsurile nu înlocuiesc evaluarea
+          INEL.
+        </p>
+      )}
+      <ExternalSource program={program} />
+      {checks.length > 0 && (
+        <Button variant="outline" onClick={() => setAnswers({})}>
+          Șterge răspunsurile
+        </Button>
+      )}
+    </section>
+  )
+}
+
+function ShareCard({ program }: { program: Program }) {
+  const [feedback, setFeedback] = useState("")
+  const [manual, setManual] = useState(false)
+  const shareId = useId()
+  // Share only the stable card URL, never search terms or self-check answers.
+  const link = new URL(
+    `?${programParams("", program.id)}`,
+    window.location.href
+  ).href
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link)
+      setManual(false)
+      setFeedback(
+        "Link copiat. Fișa include sursa oficială și limitele verificării."
+      )
+    } catch {
+      setManual(true)
+      setFeedback(
+        "Copierea automată nu este disponibilă. Selectează și copiază manual linkul de mai jos."
+      )
+    }
+  }
+  return (
+    <div className="share-card">
+      <Button variant="outline" onClick={copy}>
+        Copiază linkul fișei
+      </Button>
+      <p role="status" aria-live="polite">
+        {feedback}
+      </p>
+      {manual && (
+        <label htmlFor={shareId}>
+          Linkul fișei
+          <Input
+            id={shareId}
+            readOnly
+            value={link}
+            onFocus={(event) => event.target.select()}
+          />
+        </label>
+      )}
+    </div>
+  )
+}
+
+function PlanB({
+  program,
+  programs,
+  open,
+}: {
+  program: Program
+  programs: Program[]
+  open: (id: string) => void
+}) {
+  if (registrationStatus(program).kind !== "past") return null
+  const related = relatedPrograms(program, programs)
+  return (
+    <section className="detail-section plan-b">
+      <h2>Plan B după termen</h2>
+      <p>
+        {NO_CONFIRMED_ALTERNATIVE}. Termenul publicat a trecut; o prelungire nu
+        este confirmată.
+      </p>
+      <p>
+        Poți compara aceste anunțuri cu sursă consultată. Legătura este
+        editorială și nu confirmă înscrieri deschise.
+      </p>
+      {related.length ? (
+        <ul className="related-list">
+          {related.map(({ program: candidate, sameTopic, audiences }) => (
+            <li key={candidate.id}>
+              <a
+                href={`?${programParams(window.location.search, candidate.id)}`}
+                onClick={(event) => {
+                  if (
+                    !event.ctrlKey &&
+                    !event.metaKey &&
+                    !event.shiftKey &&
+                    !event.altKey &&
+                    event.button === 0
+                  ) {
+                    event.preventDefault()
+                    open(candidate.id)
+                  }
+                }}
+              >
+                {candidate.title} <ArrowRight size={16} aria-hidden="true" />
+              </a>
+              <p>
+                Legătură:{" "}
+                {sameTopic
+                  ? `aceeași temă — ${candidate.topic}`
+                  : `public comun — ${audiences.join(", ")}`}
+                .
+              </p>
+              <p>
+                Diferență:{" "}
+                {sameTopic
+                  ? `altă ofertă, de la ${candidate.organizer}`
+                  : `altă temă — ${candidate.topic}`}
+                . Perioada: {coursePeriod(candidate)}. Termen:{" "}
+                {formatDate(candidate.registrationDeadline)}.
+              </p>
+              <Status program={candidate} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>
+          Nu avem alte anunțuri reale cu aceeași temă sau același public în
+          catalogul pilot.
+        </p>
+      )}
+      <a
+        className="organizer-link"
+        href={`?${relatedSearchParams(program)}#catalog`}
+      >
+        Caută aceeași temă în catalog
+      </a>
+      <p>
+        Filtrul de temă include doar anunțuri reale și înlocuiește celelalte
+        filtre. Pentru o eventuală prelungire sau ediție viitoare, consultă
+        organizatorul ofertei inițiale.
+      </p>
+      <ExternalSource program={program} />
+    </section>
+  )
+}
+
+function Detail({
+  program,
+  programs,
+  back,
+  open,
+}: {
+  program: Program
+  programs: Program[]
+  back: () => void
+  open: (id: string) => void
+}) {
   const status = registrationStatus(program)
   return (
     <div className="detail-page shell">
@@ -271,6 +496,7 @@ function Detail({ program, back }: { program: Program; back: () => void }) {
           <h1>{program.title}</h1>
           <p className="detail-organizer">{program.organizer}</p>
           <p className="detail-description">{program.description}</p>
+          {!program.demo && <ShareCard program={program} />}
           {program.demo && (
             <div className="notice demo-notice">
               <Info aria-hidden="true" />
@@ -310,11 +536,12 @@ function Detail({ program, back }: { program: Program; back: () => void }) {
             )}
             <small>
               {program.officialUrl
-                ? "Vei deschide site-ul organizatorului într-o filă nouă. Radar Edu nu colectează înscrieri."
+                ? "Vei deschide site-ul organizatorului într-o filă nouă. Puntea Edu MD nu colectează înscrieri."
                 : "Acest exemplu nu are un site de înscriere."}
             </small>
           </div>
         </aside>
+        <SelfCheck program={program} />
         <section className="detail-section">
           <h2>
             <Users aria-hidden="true" />
@@ -362,6 +589,7 @@ function Detail({ program, back }: { program: Program; back: () => void }) {
             </div>
           </dl>
         </section>
+        <PlanB program={program} programs={programs} open={open} />
         <section className="detail-section">
           <h2>
             <ShieldCheck aria-hidden="true" />
@@ -418,7 +646,7 @@ export default function App() {
   }, [])
   useEffect(() => {
     const program = programs?.find((item) => item.id === selected)
-    document.title = `${program ? program.title : selected ? "Program negăsit" : "Formare pentru profesori"} | Radar Edu`
+    document.title = `${program ? program.title : selected ? "Program negăsit" : "Formări pentru profesori"} | Puntea Edu MD`
   }, [selected, programs])
   useEffect(() => {
     if (selected !== previousSelection.current) {
@@ -443,14 +671,12 @@ export default function App() {
     window.dispatchEvent(new PopStateEvent("popstate"))
   }
   const open = (id: string) => {
-    catalogScroll.current = window.scrollY
-    const next = new URLSearchParams(search)
-    next.set("program", id)
+    if (!selected) catalogScroll.current = window.scrollY
+    const next = programParams(search, id)
     navigate(next)
   }
   const back = () => {
-    const next = new URLSearchParams(search)
-    next.delete("program")
+    const next = catalogParams(search)
     navigate(next)
     main.current?.focus()
   }
@@ -484,12 +710,12 @@ export default function App() {
                 navigate(new URLSearchParams())
               }
             }}
-            aria-label="Radar Edu — catalog"
+            aria-label="Puntea Edu MD — catalog"
           >
             <span className="brand-icon">
               <Radar size={25} aria-hidden="true" />
             </span>
-            radar<span className="brand-light">edu</span>
+            Puntea<span className="brand-light">Edu MD</span>
             <span className="beta">PROTOTIP</span>
           </a>
           <nav aria-label="Navigare principală">
@@ -535,7 +761,13 @@ export default function App() {
           </div>
         ) : selected ? (
           current ? (
-            <Detail program={current} back={back} />
+            <Detail
+              key={current.id}
+              program={current}
+              programs={programs}
+              back={back}
+              open={open}
+            />
           ) : (
             <div className="shell empty-state">
               <Search />
@@ -553,7 +785,7 @@ export default function App() {
               <div className="hero-copy">
                 <p className="eyebrow">
                   <span className="tiny-line" />
-                  Dezvoltare profesională · Moldova
+                  Formări pentru profesori / Radar Edu
                 </p>
                 <h1>
                   Următorul pas în
@@ -561,12 +793,30 @@ export default function App() {
                   educația <span>ta.</span>
                 </h1>
                 <p className="hero-description">
-                  Găsește programe de formare, înțelege condițiile și alege
-                  informat. Cu sursa oficială, mereu la îndemână.
+                  Puntea Edu MD · catalog pilot de oportunități cu sursă, termen
+                  și următorul pas. Găsește o formare, verifică cui se adresează
+                  și compară termenul publicat cu perioada cursului.
                 </p>
                 <a href="#catalog" className="hero-cta">
                   Descoperă programele{" "}
                   <ArrowDown size={17} aria-hidden="true" />
+                </a>
+                <a
+                  className="demo-path"
+                  href="?program=digiprof-a-b"
+                  onClick={(event) => {
+                    if (
+                      !event.ctrlKey &&
+                      !event.metaKey &&
+                      !event.shiftKey &&
+                      !event.altKey
+                    ) {
+                      event.preventDefault()
+                      open("digiprof-a-b")
+                    }
+                  }}
+                >
+                  Încearcă fișa „Mi se potrivește?” →
                 </a>
                 <div className="hero-proof">
                   <ShieldCheck size={17} aria-hidden="true" />
@@ -766,7 +1016,7 @@ export default function App() {
             Mai multă claritate.
           </h2>
           <p>
-            Radar Edu te ajută să compari anunțuri. Organizatorul confirmă
+            Puntea Edu MD te ajută să compari anunțuri. Organizatorul confirmă
             condițiile finale și disponibilitatea locurilor.
           </p>
         </div>
@@ -801,12 +1051,24 @@ export default function App() {
               </p>
             </div>
           </div>
+          <div>
+            <span>04</span>
+            <div>
+              <h3>Următoarea etapă · planuri</h3>
+              <p>
+                Catalogul de formări / Radar Edu este primul pilot.
+                Abonamentele, alertele, locurile disponibile, publicarea de
+                către furnizori și legăturile cu modulele M2–M6 sunt planuri;
+                integrările nu sunt confirmate.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
       <footer className="site-footer shell">
         <a className="brand footer-brand" href="#continut">
           <Radar size={23} aria-hidden="true" />
-          radar<span className="brand-light">edu</span>
+          Puntea<span className="brand-light">Edu MD</span>
         </a>
         <p>Un prim pas spre oportunități mai ușor de găsit.</p>
         <span>DigiEduHack Moldova · Prototip 2026</span>
