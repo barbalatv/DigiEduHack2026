@@ -41,7 +41,7 @@ html {
 }
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
 }
 button,
 input {
@@ -101,6 +101,8 @@ svg {
 }
 .brand-light {
   font-weight: 420;
+  margin-left: 5px;
+  white-space: nowrap;
 }
 .brand-icon {
   display: grid;
@@ -1754,7 +1756,7 @@ p {
 }
 .detail-sidebar {
   grid-column: 2;
-  grid-row: 1 / span 4;
+  grid-row: 1 / span 7;
 }
 @media (max-width: 680px) {
   .detail-layout {
@@ -1766,4 +1768,74 @@ p {
   .detail-sidebar {
     width: 100%;
   }
+}
+
+.demo-path {
+  display: block;
+  width: fit-content;
+  min-height: 44px;
+  padding: 14px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #176359;
+}
+.self-check fieldset {
+  min-width: 0;
+  border: 1px solid #cbd5be;
+  border-radius: 10px;
+  padding: 16px;
+  margin: 20px 0;
+}
+.self-check legend {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+.self-check fieldset a {
+  text-decoration: underline;
+  color: #176359;
+}
+.answer-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.answer-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5be;
+  border-radius: 7px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.answer-options label:has(input:checked) {
+  background: #dfebe4;
+  border-color: #176359;
+}
+.answer-options input { accent-color: #176359; }
+.self-check .check-summary {
+  font-weight: 650;
+  font-size: 15px;
+  color: #214c40;
+}
+.self-check > button { margin: 12px 0 0 12px; min-height: 44px; }
+.share-card p { font-size: 12px; line-height: 1.7; }
+.share-card input { width: 100%; font-size: 13px; }
+.share-card button { min-height: 44px; }
+.related-list { list-style: none; padding: 0; margin: 18px 0; }
+.related-list li { padding: 16px; margin-bottom: 12px; background: #eff2e7; border-radius: 10px; }
+.related-list a { display: inline-flex; align-items: center; gap: 8px; color: #176359; font-weight: 600; min-height: 44px; }
+.related-list p { margin: 8px 0; }
+.plan-b > .organizer-link { margin-top: 10px; }
+@media (max-width: 680px) {
+  .brand { font-size: 21px; }
+  .brand-icon { margin-right: 7px; }
+  .beta { font-size: 6px; margin-left: 7px; letter-spacing: 0.5px; }
+  .site-footer .footer-brand { font-size: 20px; }
+  .site-footer p { width: 100%; margin-left: 0; text-align: left; }
+  .self-check > button { display: flex; margin-left: 0; }
+  .detail-section .organizer-link { max-width: 100%; }
 }

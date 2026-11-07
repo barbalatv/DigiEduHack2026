@@ -19,6 +19,67 @@ export type Program = {
   conditions: string[]
   nextStep: string
   caveat: string
+  selfCheck?: {
+    id: string
+    question: string
+    evidence: string
+    sourceSection: string
+  }[]
+}
+
+export type Answer = "yes" | "no" | "unknown"
+
+export function selfCheckSummary(
+  program: Program,
+  answers: Record<string, Answer>
+) {
+  const checks = program.demo ? [] : program.selfCheck || []
+  if (checks.some((check) => answers[check.id] === "no"))
+    return "Există criterii cunoscute neîndeplinite"
+  if (!checks.length || checks.some((check) => answers[check.id] !== "yes"))
+    return "Necesită confirmare"
+  return "Criterii cunoscute îndeplinite"
+}
+
+// Editorial relation only; neither a future course nor an accessible form proves availability.
+export function relatedPrograms(program: Program, programs: Program[]) {
+  return programs
+    .filter(
+      (candidate) =>
+        candidate.id !== program.id &&
+        !candidate.demo &&
+        candidate.officialUrl &&
+        candidate.verifiedAt
+    )
+    .map((candidate) => {
+      const sameTopic = candidate.topic === program.topic
+      const audiences = candidate.audience.filter((audience) =>
+        program.audience.includes(audience)
+      )
+      return { program: candidate, sameTopic, audiences }
+    })
+    .filter((match) => match.sameTopic || match.audiences.length)
+    .sort((a, b) => Number(b.sameTopic) - Number(a.sameTopic))
+    .slice(0, 2)
+}
+
+export const NO_CONFIRMED_ALTERNATIVE =
+  "Nu există o alternativă cu înscriere confirmată în catalogul pilot"
+
+export function programParams(search: string, id: string) {
+  const params = new URLSearchParams(search)
+  params.set("program", id)
+  return params
+}
+
+export function catalogParams(search: string) {
+  const params = new URLSearchParams(search)
+  params.delete("program")
+  return params
+}
+
+export function relatedSearchParams(program: Program) {
+  return new URLSearchParams({ topic: program.topic, realOnly: "1" })
 }
 
 export const UNKNOWN = "Neprecizat în sursă"
