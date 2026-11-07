@@ -142,7 +142,9 @@ export function isSnapshotEnvelope(value: unknown): value is SnapshotEnvelope {
   return s.schemaVersion === "puntea-edu-snapshot/v1"
     && typeof s.exportedAt === "string"
     && Array.isArray(s.modules)
-    && s.modules.every(m => Number.isInteger(m.id) && m.id >= 1 && m.id <= 6
+    && s.modules.every(m => Boolean(m) && typeof m === "object"
+      && Number.isInteger(m.id) && m.id >= 1 && m.id <= 6
       && Array.isArray(m.items)
-      && m.items.every(i => typeof i.externalId === "string" && typeof i.title === "string"))
+      && m.items.every(i => Boolean(i) && typeof i === "object"
+        && typeof i.externalId === "string" && typeof i.title === "string"))
 }
